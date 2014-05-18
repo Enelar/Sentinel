@@ -19,3 +19,10 @@
 *.exe
 *.out
 *.app
+
+Sentinel/Debug/*
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.filters
