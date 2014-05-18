@@ -36,14 +36,10 @@ void Worker( const string &filename )
     tasks.push_back(async(std::launch::async, GetServerOnline, address, port));
   }
 
-  while (tasks.size())
+  for (auto &result : tasks)
   {
-    auto &result = tasks.front();
-
-    result.get();
+    result.wait();
     cout << result.get() << endl;
-
-    tasks.pop_front();
   }
 }
 
