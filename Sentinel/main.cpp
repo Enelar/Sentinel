@@ -3,6 +3,7 @@
 #include <string>        
 #include <iostream>
 #include <fstream>
+#include <deque>
 
 
 using namespace std;
@@ -12,7 +13,7 @@ int GetServerOnline(string addr, int port)
   return 0;
 }
 
-struct abort
+struct abort_execution
 {
 
 };
@@ -22,22 +23,33 @@ void Worker( const string &filename )
   ifstream file(filename);
 
   if (!file.is_open())
+    throw abort_execution();
+
+  deque<future<int>> tasks;
+  packaged_task<int(string, int)> task(GetServerOnline);
+
+  while (!file.eof())
   {
-    
+    string address;
+    int port;
+
+    tasks.push_back(async(std::launch::async, GetServerOnline, address, port));
   }
 
-  packaged_task<int(string, int)> task(GetServerOnline);
-  future<int> f = task.get_future();
+  while (tasks.size())
+  {
+    auto &result = tasks.front();
 
-  thread(move(task), "aaa", 2).detach();
+    result.get();
+    cout << result.get() << endl;
 
-  f.wait();
-
-  cout << "Done" << f.get() << endl;
+    tasks.pop_front();
+  }
 }
 
 void main(int argc, const char* argv[])
 {
+
   if (argc != 2)
   {
     cout << "Unexpected params count: " << argc;
@@ -47,7 +59,7 @@ void main(int argc, const char* argv[])
   {
     Worker(argv[1]);
   }
-  catch (::abort &)
+  catch (abort_execution &)
   {
     cout << "Execution aborted" << endl;
   }
