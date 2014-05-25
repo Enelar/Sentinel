@@ -15,7 +15,7 @@
 #include <boost/lexical_cast.hpp>
 
 
-using namespace ::std;                                                                      
+using namespace ::std;
 using namespace ::boost::asio::ip;
 using namespace ::boost::asio;
 
@@ -62,23 +62,28 @@ string GetServerAnswer(string addr, int port)
     stream.flush();
     char kicked;
     short len;
-    stream >> kicked >> len;
+    char *hack = (char *)&len;
+    stream >> kicked;
+    stream >> hack[1] >> hack[0]; // little endian
 
-    u16string reason = [len, &stream]()
+    string reason = [len, &stream]()
     {
       const int size = len * sizeof(short);
       string buf;
       buf.resize(size);
 
       stream.read(&buf[0], size);
-      u16string ret;
+      string ret;
       ret.resize(len);
-      memcpy_s(&ret[0], size, &buf[0], size);
+
+      for (auto i = 0; i < len; i++)
+        ret[i] = buf[2 * i + 1];
+
       return ret;
     }();
 
-    wstring_convert<codecvt<char16_t, char, mbstate_t>, char16_t> convert;
-    return convert.to_bytes(reason);
+    //wstring_convert<codecvt<char16_t, char, mbstate_t>, char16_t> convert;
+    return reason; // convert.to_bytes(reason);
   }
   catch (exception &e)
   {
@@ -104,6 +109,8 @@ void Worker( const string &filename )
   {
     string address;
     int port;
+
+    file >> address >> port;
 
     tasks.push_back(async(std::launch::async, GetServerAnswer, address, port));
   }
